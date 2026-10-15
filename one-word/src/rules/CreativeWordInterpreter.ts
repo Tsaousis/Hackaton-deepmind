@@ -1,5 +1,5 @@
 import type { AIProvider } from '../config/GameConfig';
-import { askModel } from './askModel';
+import { TransientError, askModel } from './askModel';
 import { parseSpec, type MechanicSpec } from './MechanicSpec';
 import { registry as sharedRegistry, type MechanicRegistry } from './MechanicRegistry';
 import type { InterpretContext } from './WordInterpreter';
@@ -38,6 +38,7 @@ export class CreativeWordInterpreter {
       return hit?.token ?? null;
     }
     const spec = await this.request(word, context);
+    if (spec === undefined) return null;
     this.cache.set(key, spec);
     if (!spec) return null;
     this.registry.register(spec);
@@ -45,7 +46,8 @@ export class CreativeWordInterpreter {
     return spec.token;
   }
 
-  private async request(word: string, context?: InterpretContext): Promise<MechanicSpec | null> {
+  /** null = the world cannot read the word (cached); undefined = request failed, try again later. */
+  private async request(word: string, context?: InterpretContext): Promise<MechanicSpec | null | undefined> {
     try {
       const text = await askModel(this.provider, {
         kind: 'creative', word, allowed: [],
@@ -60,7 +62,7 @@ export class CreativeWordInterpreter {
       return spec ? { ...spec, dynamic: true } : null;
     } catch (e) {
       console.warn('creative interpreter failed', e);
-      return null;
+      return e instanceof TransientError ? undefined : null;
     }
   }
 }

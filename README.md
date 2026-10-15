@@ -40,7 +40,8 @@ with the site's key so players never need their own.
 
 1. Import the repo in Vercel and set **Root Directory** to `one-word` (framework: Vite).
 2. Add the environment variable `GEMINI_API_KEY` (optional: `GEMINI_MODEL`, `RATE_PER_MINUTE`, `RATE_PER_DAY`;
-   see `one-word/.env.example`).
+   see `one-word/.env.example`). The function's rate limits are per instance, so also set a spending/quota
+   limit on the key in Google AI Studio.
 3. Deploy. Without the env var the site still works in dictionary-only mode; a pasted key on the title screen
    always takes precedence over the proxy.
 

@@ -1,10 +1,11 @@
 // Vercel serverless function: the hosted game's door to Gemini.
 // The browser never sees the key (GEMINI_API_KEY, a Vercel env var); the
 // prompts are built server-side from a small validated request, and each
-// IP and the whole site are rate-limited. Best-effort limits (per warm
-// instance), enough to keep a hobby bill bounded.
+// IP and the whole site are rate-limited. The limits are per warm instance,
+// so they are a brake, not a budget: set a hard quota on the key itself in
+// Google AI Studio as the real ceiling.
 
-import { DEFAULT_GEMINI_MODEL, GEMINI_ENDPOINT, buildGeminiBody, geminiText, validRequest, type InterpretRequest } from '../src/rules/geminiRequest';
+import { DEFAULT_GEMINI_MODEL, GEMINI_ENDPOINT, buildGeminiBody, geminiText, validRequest } from '../src/rules/geminiRequest';
 
 const PER_MINUTE = Number(process.env.RATE_PER_MINUTE ?? 20);
 const PER_DAY = Number(process.env.RATE_PER_DAY ?? 3000);
@@ -32,11 +33,12 @@ export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
   if (!key) return json({ error: 'no key configured' }, 503);
 
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  // x-real-ip is set by Vercel's edge from the connection, not from the caller.
+  const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',').pop()?.trim() || 'unknown';
   if (limited(ip)) return json({ error: 'rate limited' }, 429, { 'Retry-After': '60' });
 
-  let body: InterpretRequest;
-  try { body = (await req.json()) as InterpretRequest; } catch { return json({ error: 'invalid JSON' }, 400); }
+  let body: unknown;
+  try { body = await req.json(); } catch { return json({ error: 'invalid JSON' }, 400); }
   if (!validRequest(body)) return json({ error: 'invalid request' }, 400);
 
   const model = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;

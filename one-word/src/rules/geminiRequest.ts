@@ -79,13 +79,15 @@ export function geminiText(data: unknown): string {
 }
 
 /** Cheap input validation shared by the proxy and the browser. */
-export function validRequest(req: InterpretRequest): boolean {
+export function validRequest(body: unknown): body is InterpretRequest {
+  if (typeof body !== 'object' || body === null) return false;
+  const req = body as Partial<InterpretRequest>;
   return (
     (req.kind === 'classify' || req.kind === 'creative') &&
     typeof req.word === 'string' && req.word.length > 0 && req.word.length <= 32 &&
     typeof req.sentence === 'string' && req.sentence.length <= 200 &&
     typeof req.current === 'string' && req.current.length <= 32 &&
     Array.isArray(req.allowed) && req.allowed.length <= 64 &&
-    req.allowed.every((t) => typeof t === 'string' && /^[A-Z_]{1,24}$/.test(t))
+    (req.allowed as unknown[]).every((t) => typeof t === 'string' && /^[A-Z_]{1,24}$/.test(t))
   );
 }
