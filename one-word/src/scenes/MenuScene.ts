@@ -159,7 +159,7 @@ export class MenuScene extends Phaser.Scene {
   /** Creative mode needs a Gemini key, so choosing it without one asks for the key first. */
   private setMode(creative: boolean) {
     if (creative && !aiProvider()) {
-      const key = window.prompt('CREATIVE mode needs a Gemini API key (from Google AI Studio). It is stored only in this browser.', '');
+      const key = window.prompt('CREATIVE mode needs Gemini. Paste a Gemini API key (from Google AI Studio); it is stored only in this browser.', '');
       if (key) setAIKey(key.trim());
       if (!aiProvider()) return;
     }

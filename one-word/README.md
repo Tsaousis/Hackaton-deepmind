@@ -26,7 +26,8 @@ landscape phones and desktop all work without a separate mobile version.
 ## How words become mechanics
 
 1. `LocalWordInterpreter`: dictionary + stemming (`protect` → HELP, `sleeping` → SLEEP).
-2. **Gemini** (optional, `GeminiWordInterpreter`): only for words the dictionary doesn't know. Structured output
+2. **Gemini** (optional, `GeminiWordInterpreter`): only for words the dictionary doesn't know. Reached either
+   directly with a pasted key or through `api/interpret.ts` on the hosted site (`askModel`). Structured output
    (`responseSchema`) is constrained to the level's allowed tokens (or NONE) and re-validated. It never generates
    code, and any failure falls back to "the world doesn't understand".
 
@@ -35,7 +36,7 @@ The game is fully playable without AI.
 ### Creative mode (invented mechanics)
 
 The title screen offers two modes next to **PLAY**: **NORMAL** (the sixteen shipped mechanics, works with AI off)
-and **CREATIVE**, which needs a Gemini key. In creative mode verb slots stop being a menu and the dictionary is
+and **CREATIVE**, which needs Gemini (a pasted key, or the hosted proxy). In creative mode verb slots stop being a menu and the dictionary is
 skipped entirely — `vanish` no longer collapses onto `HIDE`, it becomes `VANISH` with a meaning of its own:
 the model answers with a *mechanic spec* — data describing what a tile does and how an actor moves —
 and the simulation runs it. `warp`, `melt`, `ghost` and `shadow` become real laws of the world although nobody

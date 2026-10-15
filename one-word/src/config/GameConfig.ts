@@ -26,26 +26,35 @@ export const COLORS = {
 };
 
 // ---------- AI word interpreter ----------
-// Keys are read from .env.local ONLY in dev, so they are never baked into a
-// production build. In production a key can be pasted on the title screen
-// (kept in this browser's localStorage). Gemini is used when a Gemini key is
-// set, otherwise OpenAI.
-
-// Each env read sits behind its own `import.meta.env.DEV ?` so the production
-// build drops the key entirely (tools/check-no-keys.mjs verifies dist/).
-function readKey(devKey: string | undefined, storageKey: string): string {
-  let stored = '';
-  try { stored = localStorage.getItem(storageKey) ?? ''; } catch { /* storage blocked */ }
-  return stored || devKey || '';
-}
-export function geminiKey(): string {
-  return readKey(import.meta.env.DEV ? (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) : undefined, 'oneword_gemini_key');
-}
-export function openAIKey(): string {
-  return readKey(import.meta.env.DEV ? (import.meta.env.VITE_OPENAI_API_KEY as string | undefined) : undefined, 'oneword_openai_key');
-}
+// Three ways to reach Gemini, in order of preference:
+//  1. a key the player pasted on the title screen (kept in this browser's localStorage);
+//  2. VITE_GEMINI_API_KEY from .env.local, read ONLY in dev so it is never baked into a build;
+//  3. the hosted proxy (api/interpret.ts), which holds the site's key on the server.
+export const PROXY_ENDPOINT = '/api/interpret';
 export const GEMINI_MODEL = (import.meta.env.VITE_GEMINI_MODEL as string | undefined) || 'gemini-3.8-flash';
-export const OPENAI_MODEL = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) || 'gpt-4.1-mini';
+
+const KEY_STORE = 'oneword_gemini_key';
+export function geminiKey(): string {
+  let stored = '';
+  try { stored = localStorage.getItem(KEY_STORE) ?? ''; } catch { /* storage blocked */ }
+  return stored || (import.meta.env.DEV ? (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) : undefined) || '';
+}
+
+let proxyAvailable = false;
+/** Asks the server once whether /api/interpret exists; false on a plain static host. */
+export async function detectProxy(timeoutMs = 2000): Promise<boolean> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(PROXY_ENDPOINT, { method: 'GET', signal: ctrl.signal });
+    proxyAvailable = res.ok && (await res.json().catch(() => null))?.ok === true;
+  } catch {
+    proxyAvailable = false;
+  } finally {
+    clearTimeout(timer);
+  }
+  return proxyAvailable;
+}
 
 /** Creative mode: verb slots accept any word the model can turn into a mechanic. */
 export function creativeMode(): boolean {
@@ -55,18 +64,17 @@ export function setCreativeMode(on: boolean) {
   try { localStorage.setItem('oneword_creative', on ? '1' : '0'); } catch { /* storage blocked */ }
 }
 
-export type AIProvider = { name: 'Gemini' | 'OpenAI'; key: string; model: string };
+export type AIProvider = { name: 'Gemini' | 'Proxy'; key: string; model: string };
 export function aiProvider(): AIProvider | null {
   const g = geminiKey();
   if (g) return { name: 'Gemini', key: g, model: GEMINI_MODEL };
-  const o = openAIKey();
-  if (o) return { name: 'OpenAI', key: o, model: OPENAI_MODEL };
+  if (proxyAvailable) return { name: 'Proxy', key: '', model: GEMINI_MODEL };
   return null;
 }
-/** Store a pasted key under the right provider (OpenAI keys start with "sk-"). Empty clears both. */
+/** Store a pasted Gemini key. Empty clears it. */
 export function setAIKey(key: string) {
   try {
-    if (!key) { localStorage.removeItem('oneword_gemini_key'); localStorage.removeItem('oneword_openai_key'); return; }
-    localStorage.setItem(key.startsWith('sk-') ? 'oneword_openai_key' : 'oneword_gemini_key', key);
+    if (!key) localStorage.removeItem(KEY_STORE);
+    else localStorage.setItem(KEY_STORE, key);
   } catch { /* storage blocked */ }
 }

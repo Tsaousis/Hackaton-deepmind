@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import './styles/main.css';
-import { COLORS } from './config/GameConfig';
+import { COLORS, detectProxy } from './config/GameConfig';
 import { VIEW_W, VIEW_H, RENDER_SCALE } from './config/Display';
 import { isTouch, trackViewport, portraitBlocked } from './ui/Device';
 import { audio, initAudio } from './ui/Audio';
@@ -13,9 +13,11 @@ export const GAME_H = VIEW_H;
 async function boot() {
   trackViewport();
   initAudio();
+  const proxy = detectProxy();
   document.body.classList.toggle('touch', isTouch());
   // Make sure Phaser text uses the web font from the first frame.
   try { await Promise.race([Promise.all([document.fonts.load('700 20px "Space Mono"'), document.fonts.load('400 94px "Cormorant Garamond"')]), new Promise((r) => setTimeout(r, 1500))]); } catch { /* offline */ }
+  await proxy;
 
   const game = new Phaser.Game({
     type: Phaser.AUTO,

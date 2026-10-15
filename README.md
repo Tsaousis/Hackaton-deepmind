@@ -30,8 +30,19 @@ npm run dev          # open the address it prints
 - **Rewrite:** click the highlighted word in the rule, type **one** word, press Enter
 - Reach the green **EXIT**
 
-To use Gemini, put a [Google AI Studio](https://aistudio.google.com/apikey) key in `one-word/.env.local`
+To use Gemini locally, put a [Google AI Studio](https://aistudio.google.com/apikey) key in `one-word/.env.local`
 (`VITE_GEMINI_API_KEY=...`), or paste it on the title screen. The game is fully playable without a key.
+
+## Deploy (Vercel)
+
+The game is a static Vite build plus one serverless function, `one-word/api/interpret.ts`, that talks to Gemini
+with the site's key so players never need their own.
+
+1. Import the repo in Vercel and set **Root Directory** to `one-word` (framework: Vite).
+2. Add the environment variable `GEMINI_API_KEY` (optional: `GEMINI_MODEL`, `RATE_PER_MINUTE`, `RATE_PER_DAY`;
+   see `one-word/.env.example`).
+3. Deploy. Without the env var the site still works in dictionary-only mode; a pasted key on the title screen
+   always takes precedence over the proxy.
 
 <img width="3016" height="1640" alt="image" src="https://github.com/user-attachments/assets/6d690851-7fde-4757-ab52-4d8d0e6b7a83" />
 
@@ -147,8 +158,8 @@ simulation and solver.
 ## Repository
 
 - [`one-word/`](one-word/) — the game ([developer guide](one-word/README.md): levels, mechanics, code layout)
-- `other-games/` — earlier prototypes from the hackathon, not part of ONE WORD
+- `art/`, `tools/` — art pipeline and review scripts used to produce the storybook visuals
 
-## Team
+## Licence
 
-<!-- Add team members here -->
+Code is MIT; artwork and audio are reserved (see [LICENSE](LICENSE)).
